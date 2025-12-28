@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafePath - Безопасный Навигатор</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --safe-green: #2ecc71;
+            --danger-red: #e74c3c;
+            --warning-orange: #f39c12;
+            --dark-blue: #2c3e50;
+            --light-gray: #ecf0f1;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        /* Контейнер приложения */
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Поиск и ввод */
+        .search-panel {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            width: 90%;
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+
+        .route-buttons {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+        }
+
+        .btn-route {
+            flex: 1;
+            padding: 8px;
+            font-size: 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            color: white;
+            background: var(--dark-blue);
+        }
+
+        /* Карта */
+        #map {
+            flex-grow: 1;
+            z-index: 1;
+        }
+
+        /* SOS Кнопка */
+        .sos-btn {
+            position: fixed;
+            right: 20px;
+            bottom: 100px;
+            width: 70px;
+            height: 70px;
+            background-color: var(--danger-red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.5);
+            z-index: 2000;
+            cursor: pointer;
+            border: 4px solid white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        /* Нижнее меню */
+        .bottom-nav {
+            height: 70px;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            border-top: 1px solid #ddd;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            text-align: center;
+            color: var(--dark-blue);
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .nav-item i {
+            display: block;
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+
+        .active-nav {
+            color: var(--safe-green);
+        }
+
+        /* Панель уведомлений */
+        #alert-box {
+            position: fixed;
+            top: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3000;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div id="alert-box">⚠️ Внимание: Рядом неосвещенный участок!</div>
+
+    <div class="search-panel">
+        <input type="text" placeholder="Откуда (Точка А)" id="start" value="Мой дом">
+        <input type="text" placeholder="Куда (Точка Б)" id="end">
+        <div class="route-buttons">
+            <button class="btn-route" onclick="drawRoute('safe')" style="background: var(--safe-green)">🛡️ Безопасный</button>
+            <button class="btn-route" onclick="drawRoute('fast')">⚡ Быстрый</button>
+            <button class="btn-route" onclick="drawRoute('opt')">⚖️ Оптимальный</button>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="sos-btn" onclick="triggerSOS()">
+        SOS
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active-nav"><i class="fas fa-map-marked-alt"></i>Карта</div>
+        <div class="nav-item"><i class="fas fa-shield-alt"></i>Защита</div>
+        <div class="nav-item" onclick="showProfile()"><i class="fas fa-user"></i>Профиль</div>
+    </nav>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // 1. Инициализация карты (центр города для примера)
+    const map = L.map('map').setView([55.751244, 37.618423], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '©️ OpenStreetMap'
+    }).addTo(map);
+
+    // Данные для симуляции
+    const dangerZones = [
+        {coords: [55.755, 37.620], radius: 300, msg: "Темный переулок"},
+        {coords: [55.740, 37.600], radius: 400, msg: "Стройка / Мало людей"}
+    ];
+
+    // Отрисовка "опасных зон"
+    dangerZones.forEach(zone => {
+        L.circle(zone.coords, {
+            color: 'red',
+            fillColor: '#f03',
+            fillOpacity: 0.3,
+            radius: zone.radius
+        }).addTo(map).bindPopup("Опасная зона: " + zone.msg);
+    });
+
+    // Хранилище для линий маршрутов
+    let currentRoute = null;
+
+    function drawRoute(type) {
+        if (currentRoute) map.removeLayer(currentRoute);
+
+        // Координаты для примера (симуляция разных путей)
+        let points;
+        let color;
+        let score;
+
+        if (type === 'safe') {
+            points = [
+                [55.751, 37.618],
+                [55.753, 37.630],
+                [55.760, 37.640]
+            ];
+            color = '#2ecc71'; // Зеленый
+            score = 95;
+        } else if (type === 'fast') {
+            points = [
+                [55.751, 37.618],
+                [55.755, 37.620], // Проходит через опасную зону
+                [55.760, 37.640]
+            ];
+            color = '#e74c3c'; // Красный
+            score = 40;
+            showAlert();
+        } else {
+            points = [
+                [55.751, 37.618],
+                [55.758, 37.625],
+                [55.760, 37.640]
+            ];
+            color = '#f39c12'; // Оранжевый
+            score = 70;
+        }
+
+        currentRoute = L.polyline(points, {color: color, weight: 6, opacity: 0.8}).addTo(map);
+        map.fitBounds(currentRoute.getBounds());
+        
+        alert(`Маршрут построен. Рейтинг безопасности: ${score}/100`);
+    }
+
+    // Функция SOS
+    function triggerSOS() {
+        if (confirm("ОТПРАВИТЬ СИГНАЛ SOS? Ваши координаты будут разосланы доверенным контактам.")) {
+            // В реальном приложении здесь будет Geolocation API и запрос на бэкенд
+            navigator.geolocation.getCurrentPosition((pos) => {
+                alert(`СИГНАЛ ОТПРАВЛЕН!\nКоординаты: ${pos.coords.latitude}, ${pos.coords.longitude}\nРодственники уведомлены.`);
+            }, () => {
+                alert("Ошибка получения геопозиции. Сигнал отправлен по последним данным.");
+            });
+        }
+    }
+
+    // Симуляция уведомления об опасности
+    function showAlert() {
+        const box = document.getElementById('alert-box');
+        box.style.display = 'block';
+        // Вибрация телефона (если поддерживается)
+        if ("vibrate" in navigator) navigator.vibrate([500, 200, 500]);
+        
+        setTimeout(() => { box.style.display = 'none'; }, 4000);
+    }
+
+    function showProfile() {
+        alert("Профиль пользователя:\nИмя: Анна\nДоверенные контакты: Мама, Брат\nСтатус: В пути");
+    }
+</script>
+
+</body>
+</html>
