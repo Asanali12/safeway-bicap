@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Добавить адрес доставки</title>
+    <style>
+        /* Основные стили страницы */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* Карточка формы */
+        .address-card {
+            background-color: #ffffff;
+            width: 100%;
+            max-width: 450px;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .address-card h2 {
+            margin-top: 0;
+            color: #333;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Группировка элементов формы */
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box; /* Чтобы padding не увеличивал ширину */
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #4a90e2;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
+        /* Сетка для номера дома и квартиры (в одну строку) */
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1; /* Элементы растягиваются равномерно */
+        }
+
+        /* Кнопка отправки */
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 1rem;
+        }
+
+        .submit-btn:hover {
+            background-color: #357abd;
+        }
+
+        /* Небольшая подсказка под полем */
+        .help-text {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="address-card">
+        <h2>Новый адрес</h2>
+        
+        <form action="/api/save-address" method="POST">
+            
+            <div class="form-group">
+                <label for="address-name">Название адреса</label>
+                <input type="text" id="address-name" name="address_name" placeholder="Например: Дом, Дача, Родители" required>
+                <div class="help-text">Так вы будете видеть этот адрес в списке.</div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+
+            <div class="form-group">
+                <label for="city">Город</label>
+                <input type="text" id="city" name="city" placeholder="Москва" required>
+            </div>
+
+            <div class="form-group">
+                <label for="street">Улица</label>
+                <input type="text" id="street" name="street" placeholder="ул. Ленина" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="house">Дом/Корпус</label>
+                    <input type="text" id="house" name="house" required>
+                </div>
+                <div class="form-group">
+                    <label for="apartment">Кв./Офис</label>
+                    <input type="text" id="apartment" name="apartment">
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">Сохранить адрес</button>
+        </form>
+    </div>
+
+</body>
+</html>
